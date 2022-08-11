@@ -37,7 +37,7 @@ const initialParams = {
     filterQuery: argv.query,
     filterIndex: argv.index ?? "main",
     filterFrom: argv.from ? new Date(argv.from) : oneYearAgo(),
-    filterTo: argv.top ? new Date(argv.to) : new Date(),
+    filterTo: argv.to ? new Date(argv.to) : new Date(),
     pageLimit: argv.pageSize ? Math.min(argv.pageSize, 5000) : 1000,
 };
 
