@@ -75,4 +75,3 @@ console.log(chalk.cyan('Downloading logs:\n' + JSON.stringify(initialParams, nul
 
     console.log(chalk.green('Done!'));
 })();
-
