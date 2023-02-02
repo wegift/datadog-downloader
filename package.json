@@ -1,13 +1,14 @@
 {
     "name": "datadog-downloader",
     "repository": "https://github.com/wegift/datadog-downloader",
-    "version": "1.0.8",
+    "version": "1.1.8",
     "description": "Bulk download DataDog logs in JSON format without the 5k limit present in the UI.",
     "bin": "index.mjs",
     "author": "Rob Murphy",
     "license": "ISC",
     "dependencies": {
         "@datadog/datadog-api-client": "1.0.0-beta.6",
+        "@google-cloud/storage": "^6.9.1",
         "chalk": "5.0.0",
         "dotenv": "10.0.0",
         "yargs": "17.3.1"

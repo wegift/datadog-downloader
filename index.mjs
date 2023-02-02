@@ -3,8 +3,10 @@
 import { v2 } from "@datadog/datadog-api-client";
 import chalk from "chalk";
 import * as dotenv from "dotenv";
-import * as fs from "fs";
 import yargs from "yargs";
+import GCSStorage from "./gcsStorage.mjs";
+import LocalStorage from "./localStorage.mjs";
+
 const argv = yargs(process.argv).argv;
 
 dotenv.config();
@@ -12,21 +14,28 @@ dotenv.config();
 const configuration = v2.createConfiguration();
 const apiInstance = new v2.LogsApi(configuration);
 
-async function getLogs(apiInstance, params) {
-    const data = [];
-
+async function getLogs(apiInstance, storageClass, params) {
     let nextPage = null;
+    let total = 0
     let n = 0;
+
+    storageClass.write('[');
+
     do {
-        console.log(`Requesting page ${++n} ${nextPage ? `with cursor ${nextPage} ` : ``}`);
+        console.log(`Requesting page ${n + 1} ${nextPage ? `with cursor ${nextPage} ` : ``}`);
         const query = nextPage ? { ...params, pageCursor: nextPage } : params;
         const result = await apiInstance.listLogsGet(query);
-        data.push(...result.data);
+        if (n >= 1 && result.data.length > 0) storageClass.write(',')
+        for (const [logLine, logItem] of result.data.entries()) {
+            storageClass.write((logLine >= 1 ? ',' : '') + JSON.stringify(logItem))
+        }
+        total += result.data.length
         nextPage = result?.meta?.page?.after;
-        console.log(`${result.data.length} results (${data.length} total)`);
+        n++
+        console.log(`${result.data.length} results (${total} total)`);
     } while (nextPage);
 
-    return data;
+    storageClass.write(']');
 }
 
 function oneYearAgo() {
@@ -43,23 +52,45 @@ const initialParams = {
 
 if (!initialParams.filterQuery) {
     console.log(chalk.red("Error: No query supplied, use --query"));
-    process.exit();
+    process.exit(1);
+}
+
+let storage = null
+let filename = argv.output ? argv.output : `${initialParams.filterFrom.toJSON().slice(0, 19).replaceAll(':', '_')}-${initialParams.filterTo.toJSON().slice(0, 19).replaceAll(':', '_')}.json`
+
+if (argv.storage == 'gcs') {
+    const gcsCredentialFile = argv.gcsCredentialFile
+    const gcsBucketName = argv.gcsBucketName
+
+    if (!gcsBucketName) {
+        console.log(chalk.red("Error: No bucket name supplied, use --gcs-bucket-name"));
+        process.exit(1);
+    }
+
+    if (!gcsCredentialFile) {
+        console.log(chalk.red("Error: No gcs credential file supplied, use --gcs-credential-file"));
+        process.exit(1);
+    }
+
+    storage = new GCSStorage(gcsCredentialFile, gcsBucketName, filename)
+} else {
+    storage = new LocalStorage(filename)
 }
 
 console.log(chalk.cyan("Downloading logs:\n" + JSON.stringify(initialParams, null, 2) + "\n"));
 
 (async function () {
-    let data;
     try {
-        data = await getLogs(apiInstance, initialParams);
+        storage.init()
+        try {
+            await getLogs(apiInstance, storage, initialParams);
+        } finally {
+            storage.end()
+        }
     } catch (e) {
         console.log(chalk.red(e.message));
         process.exit(1);
     }
-
-    const outputFile = argv.output ?? "results.json";
-    console.log(chalk.cyan(`\nWriting ${data.length} logs to ${outputFile}`));
-    fs.writeFileSync(outputFile, JSON.stringify(data, null, 2));
 
     console.log(chalk.green("Done!"));
 })();
