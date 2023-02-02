@@ -6,8 +6,16 @@ Logs are output as a JSON file.
 
 ## Usage
 
+Local storage:
+
 ```
 DD_API_KEY=... DD_APP_KEY=... npx github:wegift/datadog-downloader --query '"Redeem failed"'
+```
+
+GCS storage:
+
+```
+DD_API_KEY=... DD_APP_KEY=... npx github:wegift/datadog-downloader --query '"Redeem failed"' --storage gcs --gcs-bucket-name 'test' --gcs-credential-file ./key.json
 ```
 
 ## Authentication
@@ -21,16 +29,22 @@ App keys are personal to your profile and can be generated in personal settings.
 ## Options
 
 ```
---query     The filter query (aka search term). Take care when quoting on the command line, single quote the entire query for best results.
+--query                 The filter query (aka search term). Take care when quoting on the command line, single quote the entire query for best results.
 
---index     Which index to read from, default 'main'
+--index                 Which index to read from, default 'main'
 
---from      Start date/time defaults to 1y ago
---to        End date/time, omit for results up to the current time
+--from                  Start date/time defaults to 1y ago
+--to                    End date/time, omit for results up to the current time
 
---pageSize  How many results to download at a time, default 1000 limit of 5000
+--pageSize              How many results to download at a time, default 1000 limit of 5000
 
---output    Path of json file to write results to, default 'results.json'
+--output                Path of json file to write results to, default 'fromDate-toDate.json'
+
+--storage               Which storage to use, available options: local, gcs
+
+--gcs-bucket-name       The destination bucket name to save file for the gcs storage
+
+--gcs-credential-file   The destination bucket name to save file for the gcs storage
 ```
 
 Note: Date/times are parsed by JS `Date` constructor, e.g. 2022-01-01
@@ -46,13 +60,6 @@ Copy `.env.example` to `.env` and add a valid DataDog API key and app key.
 ```
 node index.mjs --query '"Redeem token failure" -@redeem_failure_reason:"Invalid token"'
 ```
-
-## Caveats
-
-Logs are not streamed, they are all stored in memory and stringified / written as as single action.
-I have tested with 25k logs and there were no issues, the resultant JSON file was only 100mb so it seems likely that
-you could download 100k+ without running into memory or performance limits but ymmv.
-
 
 ## Contributing
 
