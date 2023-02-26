@@ -7,9 +7,10 @@
     "author": "Rob Murphy",
     "license": "ISC",
     "dependencies": {
-        "@datadog/datadog-api-client": "1.0.0-beta.6",
-        "chalk": "5.0.0",
-        "dotenv": "10.0.0",
-        "yargs": "17.3.1"
+        "@datadog/datadog-api-client": "^1.10.0",
+        "chalk": "^5.2.0",
+        "dotenv": "^16.0.3",
+        "yargs": "^17.7.1",
+        "prettier": "^2.8.4"
     }
 }
