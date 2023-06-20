@@ -5,7 +5,6 @@ import chalk from "chalk";
 import * as dotenv from "dotenv";
 import * as fs from "fs";
 import yargs from "yargs";
-
 const argv = yargs(process.argv).argv;
 
 dotenv.config();
