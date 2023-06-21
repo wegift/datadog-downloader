@@ -13,13 +13,13 @@ const configuration = v2.createConfiguration();
 const apiInstance = new v2.LogsApi(configuration);
 
 async function getLogs(apiInstance, params) {
-    let nextPage = null;
-    let n = 0;
+    let nextPage = params.cursor ?? null;
+    let n = 1;
     do {
         console.log(`Requesting page ${++n} ${nextPage ? `with cursor ${nextPage} ` : ``}`);
         const query = nextPage ? { ...params, pageCursor: nextPage } : params;
         const result = await apiInstance.listLogsGet(query);
-        result.data.forEach((row) => processLog(params.format, row));
+        result.data.forEach((row) => processLog(params, row));
         nextPage = result?.meta?.page?.after;
         console.log(`${result.data.length} results (${data.length} total)`);
     } while (nextPage);
@@ -29,16 +29,16 @@ async function getLogs(apiInstance, params) {
 
 const data = [];
 let writer = null;
-async function processLog(format, row) {
-    switch (format) {
+async function processLog(params, row) {
+    switch (params.format) {
         case "json":
             data.push(row);
             break;
         case "ndjson":
             if (writer === null) {
-                writer = fs.createWriteStream(argv.output ?? 'results.json', {flags: 'w'});
+                writer = fs.createWriteStream(argv.output ?? 'results.json', {flags: (params.append) ? 'a' : 'w'});
             }
-            writer.write(JSON.stringify(row, null) + '\n');  
+            writer.write(JSON.stringify(row, null) + '\n');
             break;
         default:
             console.log(chalk.red(`Unknown format ${format}`));
@@ -57,6 +57,8 @@ const initialParams = {
     filterTo: argv.to ? new Date(argv.to) : new Date(),
     pageLimit: argv.pageSize ? Math.min(argv.pageSize, 5000) : 1000,
     format: argv.format ?? "json",
+    cursor: argv.cursor ?? null,
+    append: (argv.append) ? true : false,
 };
 
 if (!initialParams.filterQuery) {
