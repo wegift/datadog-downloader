@@ -31,6 +31,10 @@ App keys are personal to your profile and can be generated in personal settings.
 --pageSize  How many results to download at a time, default 1000 limit of 5000
 
 --output    Path of json file to write results to, default 'results.json'
+
+--format
+    json (default): Save the final output as a single JSON object
+    ndjson: Stream the output to New Line Delimited JSON file (Less memory intensive on larger datasets)
 ```
 
 Note: Date/times are parsed by JS `Date` constructor, e.g. 2022-01-01
