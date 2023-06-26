@@ -13,20 +13,37 @@ const configuration = v2.createConfiguration();
 const apiInstance = new v2.LogsApi(configuration);
 
 async function getLogs(apiInstance, params) {
-    const data = [];
-
-    let nextPage = null;
-    let n = 0;
+    let nextPage = params.cursor ?? null;
+    let n = 1;
     do {
         console.log(`Requesting page ${++n} ${nextPage ? `with cursor ${nextPage} ` : ``}`);
         const query = nextPage ? { ...params, pageCursor: nextPage } : params;
         const result = await apiInstance.listLogsGet(query);
-        data.push(...result.data);
+        result.data.forEach((row) => processLog(params, row));
         nextPage = result?.meta?.page?.after;
         console.log(`${result.data.length} results (${data.length} total)`);
     } while (nextPage);
 
-    return data;
+    return true;
+}
+
+const data = [];
+let writer = null;
+async function processLog(params, row) {
+    switch (params.format) {
+        case "json":
+            data.push(row);
+            break;
+        case "ndjson":
+            if (writer === null) {
+                writer = fs.createWriteStream(argv.output ?? 'results.json', {flags: (params.append) ? 'a' : 'w'});
+            }
+            writer.write(JSON.stringify(row, null) + '\n');
+            break;
+        default:
+            console.log(chalk.red(`Unknown format ${format}`));
+            process.exit(1);
+    }
 }
 
 function oneYearAgo() {
@@ -39,6 +56,9 @@ const initialParams = {
     filterFrom: argv.from ? new Date(argv.from) : oneYearAgo(),
     filterTo: argv.to ? new Date(argv.to) : new Date(),
     pageLimit: argv.pageSize ? Math.min(argv.pageSize, 5000) : 1000,
+    format: argv.format ?? "json",
+    cursor: argv.cursor ?? null,
+    append: (argv.append) ? true : false,
 };
 
 if (!initialParams.filterQuery) {
@@ -49,17 +69,22 @@ if (!initialParams.filterQuery) {
 console.log(chalk.cyan("Downloading logs:\n" + JSON.stringify(initialParams, null, 2) + "\n"));
 
 (async function () {
-    let data;
     try {
-        data = await getLogs(apiInstance, initialParams);
+        await getLogs(apiInstance, initialParams);
     } catch (e) {
         console.log(chalk.red(e.message));
         process.exit(1);
     }
-
-    const outputFile = argv.output ?? "results.json";
-    console.log(chalk.cyan(`\nWriting ${data.length} logs to ${outputFile}`));
-    fs.writeFileSync(outputFile, JSON.stringify(data, null, 2));
+    switch (initialParams.format) {
+        case "ndjson":
+            writer.end();
+            break;
+        case "json":
+            const outputFile = argv.output ?? "results.json";
+            console.log(chalk.cyan(`\nWriting ${data.length} logs to ${outputFile}`));
+            fs.writeFileSync(outputFile, JSON.stringify(data, null, 2));
+            break;
+    }
 
     console.log(chalk.green("Done!"));
 })();
