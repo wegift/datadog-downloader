@@ -13,7 +13,7 @@ const configuration = v2.createConfiguration();
 const apiInstance = new v2.LogsApi(configuration);
 
 async function getLogs(apiInstance, params) {
-    let nextPage = null;
+    let nextPage = params.cursor ?? null;
     let n = 1;
     do {
         console.log(`Requesting page ${n} ${nextPage ? `with cursor ${nextPage} ` : ``}`);
