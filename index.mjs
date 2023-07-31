@@ -16,12 +16,22 @@ async function getLogs(apiInstance, params) {
     let nextPage = params.cursor ?? null;
     let n = 1;
     do {
-        console.log(`Requesting page ${++n} ${nextPage ? `with cursor ${nextPage} ` : ``}`);
-        const query = nextPage ? { ...params, pageCursor: nextPage } : params;
-        const result = await apiInstance.listLogsGet(query);
-        result.data.forEach((row) => processLog(params, row));
-        nextPage = result?.meta?.page?.after;
-        console.log(`${result.data.length} results (${data.length} total)`);
+        console.log(`Requesting page ${n} ${nextPage ? `with cursor ${nextPage} ` : ``}`);
+        try {
+            const query = nextPage ? { ...params, pageCursor: nextPage } : params;
+            const result = await apiInstance.listLogsGet(query);
+            result.data.forEach((row) => processLog(params.format, row));
+            n++;
+            nextPage = result?.meta?.page?.after;
+            console.log(`${result.data.length} results (${data.length} total)`);    
+        } catch (e) {
+            if (e.code === 429) {
+                console.log(chalk.yellow(`Rate limit exceeded, sleeping for 1 seconds`));
+                await new Promise((resolve) => setTimeout(resolve, 1 * 1000));
+                continue;
+            }
+            throw e;
+        }
     } while (nextPage);
 
     return true;
